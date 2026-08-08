@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nusantara Cultural Meta-Hub - ICP2E Blitar Raya</title>
+  
+  <!-- Library A-Frame 3D (Ringan & Gratis) -->
+  <script src="https://aframe.io/releases/1.4.0/aframe.min.min.js"></script>
+  <!-- Pi Network SDK -->
+  <script src="https://sdk.minepi.com/pi-sdk.js"></script>
+  
+  <script src="config.js"></script>
+  <script src="logic_split.js"></script>
+
+  <style>
+    .ui-panel {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 999;
+      background: rgba(0, 0, 0, 0.7);
+      color: #fff;
+      padding: 12px;
+      border-radius: 8px;
+      font-family: sans-serif;
+      max-width: 280px;
+    }
+    .btn-buy {
+      background: #e67e22;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 5px;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- UI Overlay -->
+  <div class="ui-panel">
+    <h3 style="margin:0 0 5px 0;">Meta-Hub ICP2E</h3>
+    <p style="font-size:12px; margin:0 0 10px 0;">Galeri & Lahan Budaya Virtual</p>
+    <button class="btn-buy" onclick="processMetaversePayment(10, 'G_WALLET_KREATOR_SAMPLE', 'Galeri Wayang 3D')">
+      Sewa Galeri (10 Pi)
+    </button>
+  </div>
+
+  <!-- A-Frame 3D World (Metaverse Scene) -->
+  <a-scene embedded style="width: 100vw; height: 100vh;">
+    <!-- Langit Metaverse -->
+    <a-sky color="#1a1a2e"></a-sky>
+
+    <!-- Papan Pameran / Billboard 3D -->
+    <a-box position="0 1.5 -3" rotation="0 0 0" color="#4e54c8" depth="0.1" height="2" width="3">
+      <a-text value="Selamat Datang di\nNusantara Meta-Hub\nICP2E Blitar Raya" align="center" position="0 0 0.1" scale="0.8 0.8 0.8"></a-text>
+    </a-box>
+
+    <!-- Lantai Virtual -->
+    <a-plane position="0 0 0" rotation="-90 0 0" width="10" height="10" color="#0f3460"></a-plane>
+    
+    <!-- Kamera / Avatar Pengguna -->
+    <a-entity camera look-controls wasd-controls position="0 1.6 0"></a-entity>
+  </a-scene>
+
+</body>
+</html>
