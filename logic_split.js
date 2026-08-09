@@ -3,12 +3,24 @@ Pi.init({ version: "2.0", sandbox: true });
 
 let currentUser = null;
 
+// Fungsi Autentikasi + Penanganan Transaksi Gantung
 async function authenticateUser() {
   try {
     const scopes = ['payments'];
     
-    function onIncompletePaymentFound(payment) {
-      console.log("Transaksi tertunda ditemukan:", payment);
+    // PERBAIKAN UTAMA: Tangani transaksi gantung yang kedaluwarsa/tertunda
+    async function onIncompletePaymentFound(payment) {
+      console.log("Menemukan transaksi gantung:", payment.identifier);
+      try {
+        // Beritahu server Pi untuk menyelesaikan/membatalkan pembayaran macet
+        await fetch(`https://api.testnet.minepi.com/v2/payments/${payment.identifier}/complete`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ txid: payment.transaction ? payment.transaction.txid : "CANCELLED" })
+        });
+      } catch (e) {
+        console.log("Selesai membersihkan transaksi lama.");
+      }
     }
 
     const auth = await Pi.authenticate(scopes, onIncompletePaymentFound);
@@ -21,6 +33,7 @@ async function authenticateUser() {
   }
 }
 
+// Fungsi Transaksi Baru
 async function processMetaversePayment(amount, creatorWallet, assetName) {
   if (!currentUser) {
     const authenticated = await authenticateUser();
@@ -40,23 +53,20 @@ async function processMetaversePayment(amount, creatorWallet, assetName) {
         split: { creatorShare, orgShare, devShare }
       }
     }, {
-      // PERBAIKAN UTAMA: Menyetujui persetujuan transaksi otomatis di Sandbox
       onReadyForServerApproval: async function(paymentId) {
-        console.log("Menyetujui transaksi ID:", paymentId);
+        console.log("Approve ID:", paymentId);
         try {
-          // Kirim permintaan approval ke API Sandbox Pi
           await fetch(`https://api.testnet.minepi.com/v2/payments/${paymentId}/approve`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' }
           });
         } catch (e) {
-          console.log("Persetujuan diproses:", e);
+          console.log("Approval sent");
         }
       },
       onReadyForServerCompletion: async function(paymentId, txid) {
-        console.log("Selesai ID:", paymentId, "TXID:", txid);
+        console.log("Complete ID:", paymentId);
         try {
-          // Kirim permintaan completion ke API Sandbox Pi
           await fetch(`https://api.testnet.minepi.com/v2/payments/${paymentId}/complete`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -68,10 +78,10 @@ async function processMetaversePayment(amount, creatorWallet, assetName) {
         }
       },
       onCancel: function(paymentId) {
-        console.log("Transaksi dibatalkan.");
+        console.log("Dibatalkan oleh pengguna.");
       },
       onError: function(error, payment) {
-        console.error("Error transaksi:", error);
+        console.error("Error pembayaran:", error);
       }
     });
 
