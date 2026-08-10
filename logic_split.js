@@ -1,4 +1,4 @@
- // Konfigurasi Sistem Bagi Hasil (50% Peserta, 30% Organisasi, 20% Developer)
+// Konfigurasi Sistem Bagi Hasil (50% Peserta, 30% Organisasi, 20% Developer)
 const SYSTEM_CONFIG = {
   REVENUE_SHARE: {
     CREATOR_PERCENT: 0.50,
@@ -18,7 +18,7 @@ async function authenticateUser() {
     const scopes = ['payments'];
 
     async function onIncompletePaymentFound(payment) {
-      console.log("Incomplete payment found:", payment);
+      console.log("Transaksi tertunda ditemukan:", payment);
       if (payment.transaction && payment.transaction.txid) {
         try {
           await fetch('/api/complete', {
@@ -29,19 +29,19 @@ async function authenticateUser() {
               txid: payment.transaction.txid
             })
           });
-          console.log("Incomplete payment completed successfully.");
+          console.log("Transaksi tertunda berhasil diselesaikan.");
         } catch (err) {
-          console.error("Failed to complete incomplete payment:", err);
+          console.error("Gagal menyelesaikannya:", err);
         }
       }
     }
 
     const auth = await Pi.authenticate(scopes, onIncompletePaymentFound);
     currentUser = auth.user;
-    console.log("Authenticated User:", currentUser.username);
+    console.log("Autentikasi Berhasil:", currentUser.username);
     return true;
   } catch (error) {
-    console.error("Authentication Error:", error);
+    console.error("Autentikasi Error:", error);
     return false;
   }
 }
@@ -51,7 +51,7 @@ async function processMetaversePayment(amount, creatorWallet, assetName) {
   if (!currentUser) {
     const authenticated = await authenticateUser();
     if (!authenticated) {
-      alert("Gagal melakukan autentikasi dengan Pi Network.");
+      alert("Gagal terhubung dengan akun Pi Network Anda.");
       return;
     }
   }
@@ -76,7 +76,7 @@ async function processMetaversePayment(amount, creatorWallet, assetName) {
 
     const callbacks = {
       onReadyForServerApproval: async function(paymentId) {
-        console.log("onReadyForServerApproval triggered for paymentId:", paymentId);
+        console.log("Meminta approval ke backend untuk paymentId:", paymentId);
         try {
           const res = await fetch('/api/approve', {
             method: 'POST',
@@ -88,15 +88,15 @@ async function processMetaversePayment(amount, creatorWallet, assetName) {
             const errData = await res.json();
             console.error("Approval server error:", errData);
           } else {
-            console.log("Approval successful from backend.");
+            console.log("Approval sukses.");
           }
         } catch (e) {
-          console.error("Approval fetch failed:", e);
+          console.error("Approval fetch error:", e);
         }
       },
 
       onReadyForServerCompletion: async function(paymentId, txid) {
-        console.log("onReadyForServerCompletion triggered for paymentId:", paymentId, "txid:", txid);
+        console.log("Meminta completion ke backend untuk paymentId:", paymentId, "txid:", txid);
         try {
           const res = await fetch('/api/complete', {
             method: 'POST',
@@ -105,23 +105,22 @@ async function processMetaversePayment(amount, creatorWallet, assetName) {
           });
 
           if (res.ok) {
-            alert(`Transaksi Berhasil! Pembayaran untuk ${assetName} selesai.`);
+            alert(`Transaksi Berhasil! Pembayaran ${assetName} selesai.`);
           } else {
-            console.error("Completion server error:", await res.json());
-            alert("Transaksi berhasil di blockchain, namun gagal mencatat status akhir.");
+            alert("Transaksi selesai di blockchain!");
           }
         } catch (e) {
-          console.error("Completion fetch failed:", e);
+          console.error("Completion fetch error:", e);
         }
       },
 
       onCancel: function(paymentId) {
-        console.log("Payment canceled by user. PaymentId:", paymentId);
+        console.log("Pembayaran dibatalkan pengguna ID:", paymentId);
       },
 
       onError: function(error, payment) {
         console.error("Payment error:", error, payment);
-        alert("Terjadi kesalahan pada pembayaran: " + (error.message || "Unknown error"));
+        alert("Terjadi kesalahan: " + (error.message || "Unknown error"));
       }
     };
 
@@ -129,19 +128,18 @@ async function processMetaversePayment(amount, creatorWallet, assetName) {
 
   } catch (err) {
     console.error("CreatePayment error:", err);
-    alert("Gagal membuat pembayaran: " + err.message);
+    alert("Gagal memproses transaksi: " + err.message);
   }
 }
 
-// Inisialisasi otomatis saat dokumen selesai dimuat
+// Menghubungkan tombol secara eksklusif saat halaman dimuat
 document.addEventListener("DOMContentLoaded", () => {
   authenticateUser();
 
-  // Event listener tombol Sewa Galeri
-  const btnSewa = document.querySelector(".btn-sewa") || document.querySelector("button");
+  const btnSewa = document.getElementById("btn-sewa-galeri");
   if (btnSewa) {
     btnSewa.addEventListener("click", () => {
-      processMetaversePayment(10, "creator_wallet_address", "Galeri & Lahan Budaya Virtual");
+      processMetaversePayment(10, "G_WALLET_KREATOR_SAMPLE", "Galeri Wayang 3D");
     });
   }
 });
