@@ -5,13 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Nusantara Cultural Meta-Hub - ICP2E Blitar Raya</title>
   
-  <!-- Library A-Frame 3D (Ringan & Gratis) -->
-  <script src="https://aframe.io/releases/1.4.0/aframe.min.min.js"></script>
+  <!-- Library A-Frame 3D -->
+  <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
   <!-- Pi Network SDK -->
   <script src="https://sdk.minepi.com/pi-sdk.js"></script>
   
-  <script src="config.js"></script>
-  <script src="logic_split.js"></script>
+  <script src="logic_split.js" defer></script>
 
   <style>
     .ui-panel {
@@ -19,7 +18,7 @@
       top: 10px;
       left: 10px;
       z-index: 999;
-      background: rgba(0, 0, 0, 0.7);
+      background: rgba(0, 0, 0, 0.75);
       color: #fff;
       padding: 12px;
       border-radius: 8px;
@@ -30,11 +29,15 @@
       background: #e67e22;
       color: white;
       border: none;
-      padding: 8px 12px;
+      padding: 10px 12px;
       border-radius: 4px;
       cursor: pointer;
       margin-top: 5px;
       width: 100%;
+      font-weight: bold;
+    }
+    .btn-buy:active {
+      background: #d35400;
     }
   </style>
 </head>
@@ -44,7 +47,8 @@
   <div class="ui-panel">
     <h3 style="margin:0 0 5px 0;">Meta-Hub ICP2E</h3>
     <p style="font-size:12px; margin:0 0 10px 0;">Galeri & Lahan Budaya Virtual</p>
-    <button class="btn-buy" onclick="processMetaversePayment(10, 'G_WALLET_KREATOR_SAMPLE', 'Galeri Wayang 3D')">
+    <!-- Atribut onclick dihapus agar tidak bentrok dengan listener JavaScript -->
+    <button id="btn-sewa-galeri" class="btn-buy">
       Sewa Galeri (10 Pi)
     </button>
   </div>
