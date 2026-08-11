@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Nusantara Cultural Meta-Hub - ICP2E Blitar Raya</title>
   
   <!-- Library A-Frame 3D -->
@@ -13,61 +13,78 @@
   <script src="logic_split.js" defer></script>
 
   <style>
-    .ui-panel {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      z-index: 999;
-      background: rgba(0, 0, 0, 0.75);
-      color: #fff;
-      padding: 12px;
-      border-radius: 8px;
-      font-family: sans-serif;
-      max-width: 280px;
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
     }
-    .btn-buy {
-      background: #e67e22;
-      color: white;
-      border: none;
-      padding: 10px 12px;
-      border-radius: 4px;
-      cursor: pointer;
-      margin-top: 5px;
-      width: 100%;
+    .ui-panel {
+      position: fixed;
+      top: 15px;
+      left: 15px;
+      z-index: 9999;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(8px);
+      color: #ffffff;
+      padding: 16px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      width: 240px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    }
+    .ui-title {
+      margin: 0 0 4px 0;
+      font-size: 16px;
       font-weight: bold;
     }
+    .ui-sub {
+      font-size: 11px;
+      color: #94a3b8;
+      margin: 0 0 12px 0;
+    }
+    .btn-buy {
+      background: #f97316;
+      color: white;
+      border: none;
+      padding: 10px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      width: 100%;
+      font-weight: bold;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
     .btn-buy:active {
-      background: #d35400;
+      background: #ea580c;
     }
   </style>
 </head>
 <body>
 
-  <!-- UI Overlay -->
+  <!-- UI Overlay (Tetap Kaku Di Atas) -->
   <div class="ui-panel">
-    <h3 style="margin:0 0 5px 0;">Meta-Hub ICP2E</h3>
-    <p style="font-size:12px; margin:0 0 10px 0;">Galeri & Lahan Budaya Virtual</p>
-    <!-- Atribut onclick dihapus agar tidak bentrok dengan listener JavaScript -->
+    <div class="ui-title">Meta-Hub ICP2E</div>
+    <div class="ui-sub">Galeri & Lahan Budaya Virtual</div>
     <button id="btn-sewa-galeri" class="btn-buy">
       Sewa Galeri (10 Pi)
     </button>
   </div>
 
-  <!-- A-Frame 3D World (Metaverse Scene) -->
-  <a-scene embedded style="width: 100vw; height: 100vh;">
+  <!-- A-Frame 3D World (Sensor Gyro / Goyang Dimatikan) -->
+  <a-scene embedded vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
     <!-- Langit Metaverse -->
-    <a-sky color="#1a1a2e"></a-sky>
+    <a-sky color="#0f172a"></a-sky>
 
-    <!-- Papan Pameran / Billboard 3D -->
-    <a-box position="0 1.5 -3" rotation="0 0 0" color="#4e54c8" depth="0.1" height="2" width="3">
-      <a-text value="Selamat Datang di\nNusantara Meta-Hub\nICP2E Blitar Raya" align="center" position="0 0 0.1" scale="0.8 0.8 0.8"></a-text>
+    <!-- Papan Pameran 3D (Posisi Diatur Lebih Jauh Agar Tidak Tertutup UI) -->
+    <a-box position="0 1.8 -5" rotation="0 0 0" color="#1e1b4b" depth="0.1" height="2.2" width="4.2">
+      <a-text value="Selamat Datang di\nNusantara Meta-Hub\nICP2E Blitar Raya" align="center" position="0 0 0.1" scale="1 1 1" color="#ffffff"></a-text>
     </a-box>
 
     <!-- Lantai Virtual -->
-    <a-plane position="0 0 0" rotation="-90 0 0" width="10" height="10" color="#0f3460"></a-plane>
+    <a-plane position="0 0 0" rotation="-90 0 0" width="20" height="20" color="#1e293b"></a-plane>
     
-    <!-- Kamera / Avatar Pengguna -->
-    <a-entity camera look-controls wasd-controls position="0 1.6 0"></a-entity>
+    <!-- Kamera Di-lock (look-controls="magicWindowTrackingEnabled: false" MENCEGAH TEKS GOYANG DI HP) -->
+    <a-entity camera look-controls="magicWindowTrackingEnabled: false; touchEnabled: true" position="0 1.6 0"></a-entity>
   </a-scene>
 
 </body>
