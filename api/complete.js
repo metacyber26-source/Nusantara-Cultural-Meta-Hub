@@ -14,15 +14,15 @@ export default async function handler(req, res) {
   try {
     const { paymentId, txid } = req.body;
     if (!paymentId || !txid) {
-      return res.status(400).json({ error: 'paymentId and txid are required' });
+      return res.status(400).json({ error: 'paymentId dan txid wajib diisi' });
     }
 
     const API_KEY = process.env.PI_API_KEY;
     if (!API_KEY) {
-      return res.status(500).json({ error: 'PI_API_KEY is not configured on Vercel' });
+      return res.status(500).json({ error: 'Server key not configured' });
     }
 
-    const piResponse = await fetch(`https://api.testnet.minepi.com/v2/payments/${paymentId}/complete`, {
+    const piRes = await fetch(`https://api.testnet.minepi.com/v2/payments/${paymentId}/complete`, {
       method: 'POST',
       headers: {
         'Authorization': `Key ${API_KEY}`,
@@ -31,9 +31,11 @@ export default async function handler(req, res) {
       body: JSON.stringify({ txid })
     });
 
-    const data = await piResponse.json();
-    return res.status(piResponse.status).json(data);
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
+    const result = await piRes.json();
+    return res.status(piRes.status).json(result);
+
+  } catch (err) {
+    console.error("Error complete:", err);
+    return res.status(500).json({ error: err.message });
   }
 }
