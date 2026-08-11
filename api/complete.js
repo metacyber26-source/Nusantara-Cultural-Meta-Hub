@@ -14,15 +14,15 @@ export default async function handler(req, res) {
   try {
     const { paymentId, txid } = req.body;
     if (!paymentId || !txid) {
-      return res.status(400).json({ error: 'paymentId dan txid wajib diisi' });
+      return res.status(400).json({ error: 'paymentId and txid required' });
     }
 
     const API_KEY = process.env.PI_API_KEY;
     if (!API_KEY) {
-      return res.status(500).json({ error: 'Server key not configured' });
+      return res.status(500).json({ error: 'API Key Not Configured' });
     }
 
-    const piRes = await fetch(`https://api.testnet.minepi.com/v2/payments/${paymentId}/complete`, {
+    const response = await fetch(`https://api.testnet.minepi.com/v2/payments/${paymentId}/complete`, {
       method: 'POST',
       headers: {
         'Authorization': `Key ${API_KEY}`,
@@ -31,11 +31,11 @@ export default async function handler(req, res) {
       body: JSON.stringify({ txid })
     });
 
-    const result = await piRes.json();
-    return res.status(piRes.status).json(result);
+    const data = await response.json();
+    return res.status(response.status).json(data);
 
-  } catch (err) {
-    console.error("Error complete:", err);
-    return res.status(500).json({ error: err.message });
+  } catch (error) {
+    console.error("Internal Completion Error:", error);
+    return res.status(500).json({ error: error.message });
   }
 }
