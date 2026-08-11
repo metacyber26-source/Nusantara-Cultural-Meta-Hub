@@ -1,5 +1,4 @@
 export default async function handler(req, res) {
-  // Izinkan CORS untuk Pi Browser
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -15,17 +14,17 @@ export default async function handler(req, res) {
   try {
     const { paymentId } = req.body;
     if (!paymentId) {
-      return res.status(400).json({ error: 'paymentId wajib diisi' });
+      return res.status(400).json({ error: 'paymentId required' });
     }
 
     const API_KEY = process.env.PI_API_KEY;
     if (!API_KEY) {
-      console.error("PI_API_KEY belum terpasang di Vercel");
-      return res.status(500).json({ error: 'Server key not configured' });
+      console.error("PI_API_KEY is missing on Vercel environment variables.");
+      return res.status(500).json({ error: 'API Key Not Configured' });
     }
 
-    // Tembak langsung API Sandbox Pi Network
-    const piRes = await fetch(`https://api.testnet.minepi.com/v2/payments/${paymentId}/approve`, {
+    // Mengirim permintaan persetujuan ke Pi Testnet API
+    const response = await fetch(`https://api.testnet.minepi.com/v2/payments/${paymentId}/approve`, {
       method: 'POST',
       headers: {
         'Authorization': `Key ${API_KEY}`,
@@ -33,11 +32,18 @@ export default async function handler(req, res) {
       }
     });
 
-    const result = await piRes.json();
-    return res.status(piRes.status).json(result);
+    const data = await response.json();
 
-  } catch (err) {
-    console.error("Error approve:", err);
-    return res.status(500).json({ error: err.message });
+    if (!response.ok) {
+      console.error("Pi API Approval Failed:", data);
+      return res.status(response.status).json(data);
+    }
+
+    // Mengembalikan sukses ke Pi SDK
+    return res.status(200).json(data);
+
+  } catch (error) {
+    console.error("Internal Approval Error:", error);
+    return res.status(500).json({ error: error.message });
   }
 }
