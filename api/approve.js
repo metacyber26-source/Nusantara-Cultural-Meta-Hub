@@ -15,19 +15,17 @@ export default async function handler(req, res) {
   try {
     const { paymentId } = req.body;
     if (!paymentId) {
-      return res.status(400).json({ error: 'paymentId is required' });
+      return res.status(400).json({ error: 'paymentId wajib diisi' });
     }
 
     const API_KEY = process.env.PI_API_KEY;
     if (!API_KEY) {
-      console.error("EROR BERSAMA: PI_API_KEY tidak ditemukan di Environment Variables Vercel!");
-      return res.status(500).json({ error: 'PI_API_KEY is not configured on Vercel' });
+      console.error("PI_API_KEY belum terpasang di Vercel");
+      return res.status(500).json({ error: 'Server key not configured' });
     }
 
-    console.log(`Mengirim request approve untuk Payment ID: ${paymentId}`);
-
-    // Request approve ke Pi Network Sandbox API
-    const piResponse = await fetch(`https://api.testnet.minepi.com/v2/payments/${paymentId}/approve`, {
+    // Tembak langsung API Sandbox Pi Network
+    const piRes = await fetch(`https://api.testnet.minepi.com/v2/payments/${paymentId}/approve`, {
       method: 'POST',
       headers: {
         'Authorization': `Key ${API_KEY}`,
@@ -35,12 +33,11 @@ export default async function handler(req, res) {
       }
     });
 
-    const data = await piResponse.json();
-    console.log("Respon dari Pi Network API:", data);
+    const result = await piRes.json();
+    return res.status(piRes.status).json(result);
 
-    return res.status(piResponse.status).json(data);
-  } catch (error) {
-    console.error("Gagal memproses /api/approve:", error);
-    return res.status(500).json({ error: error.message });
+  } catch (err) {
+    console.error("Error approve:", err);
+    return res.status(500).json({ error: err.message });
   }
 }
