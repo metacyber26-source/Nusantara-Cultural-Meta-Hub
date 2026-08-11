@@ -6,7 +6,7 @@ const SYSTEM_CONFIG = {
   }
 };
 
-// Inisialisasi SDK Pi Sandbox
+// Inisialisasi SDK Pi v2 Sandbox
 Pi.init({ version: "2.0", sandbox: true });
 
 let currentUser = null;
@@ -31,10 +31,10 @@ async function authenticateUser() {
 
     const auth = await Pi.authenticate(scopes, onIncompletePaymentFound);
     currentUser = auth.user;
-    console.log("Autentikasi Berhasil:", currentUser.username);
+    console.log("Autentikasi Sukses:", currentUser.username);
     return true;
   } catch (error) {
-    console.error("Autentikasi Error:", error);
+    console.error("Autentikasi Gagal:", error);
     return false;
   }
 }
@@ -43,7 +43,7 @@ async function processMetaversePayment(amount, creatorWallet, assetName) {
   if (!currentUser) {
     const authenticated = await authenticateUser();
     if (!authenticated) {
-      alert("Gagal melakukan autentikasi akun Pi.");
+      alert("Silakan buka aplikasi melalui Pi Browser untuk melanjutkan transaksi.");
       return;
     }
   }
@@ -65,15 +65,17 @@ async function processMetaversePayment(amount, creatorWallet, assetName) {
     const callbacks = {
       onReadyForServerApproval: function(paymentId) {
         console.log("Mengirim persetujuan ke server untuk ID:", paymentId);
-        // Mengembalikan promise langsung ke Pi SDK
         return fetch('/api/approve', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ paymentId: paymentId })
         })
-        .then(res => res.json())
-        .then(data => console.log("Approved oleh server:", data))
-        .catch(err => console.error("Gagal Approve:", err));
+        .then(res => {
+          if (!res.ok) throw new Error("Server backend menolak persetujuan.");
+          return res.json();
+        })
+        .then(data => console.log("Approval sukses:", data))
+        .catch(err => console.error("Approval error:", err));
       },
 
       onReadyForServerCompletion: function(paymentId, txid) {
@@ -85,10 +87,9 @@ async function processMetaversePayment(amount, creatorWallet, assetName) {
         })
         .then(res => res.json())
         .then(data => {
-          console.log("Completed oleh server:", data);
           alert(`Transaksi Sukses! ${assetName} berhasil disewa.`);
         })
-        .catch(err => console.error("Gagal Complete:", err));
+        .catch(err => console.error("Completion error:", err));
       },
 
       onCancel: function(paymentId) {
@@ -97,6 +98,7 @@ async function processMetaversePayment(amount, creatorWallet, assetName) {
 
       onError: function(error, payment) {
         console.error("Payment error:", error, payment);
+        alert("Transaksi gagal: " + (error.message || "Batas waktu persetujuan habis."));
       }
     };
 
@@ -104,7 +106,7 @@ async function processMetaversePayment(amount, creatorWallet, assetName) {
 
   } catch (err) {
     console.error("CreatePayment error:", err);
-    alert("Gagal memproses transaksi: " + err.message);
+    alert("Gagal memicu pembayaran: " + err.message);
   }
 }
 
