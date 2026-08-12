@@ -6,7 +6,7 @@ const SYSTEM_CONFIG = {
   }
 };
 
-// Inisialisasi SDK Pi v2 Sandbox
+// Inisialisasi SDK Pi Sandbox
 Pi.init({ version: "2.0", sandbox: true });
 
 let currentUser = null;
@@ -15,23 +15,28 @@ async function authenticateUser() {
   try {
     const scopes = ['payments'];
 
+    // Menangani transaksi gantung agar tidak mengunci pembayaran baru
     async function onIncompletePaymentFound(payment) {
-      console.log("Incomplete payment found:", payment);
-      if (payment.transaction && payment.transaction.txid) {
-        await fetch('/api/complete', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            paymentId: payment.identifier,
-            txid: payment.transaction.txid
-          })
-        });
+      console.log("Incomplete payment ditemukan:", payment);
+      if (payment.identifier) {
+        try {
+          await fetch('/api/complete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              paymentId: payment.identifier,
+              txid: payment.transaction ? payment.transaction.txid : "CANCEL_OR_EXPIRED"
+            })
+          });
+        } catch (err) {
+          console.error("Gagal membersihkan incomplete payment:", err);
+        }
       }
     }
 
     const auth = await Pi.authenticate(scopes, onIncompletePaymentFound);
     currentUser = auth.user;
-    console.log("Autentikasi Sukses:", currentUser.username);
+    console.log("Autentikasi Berhasil:", currentUser.username);
     return true;
   } catch (error) {
     console.error("Autentikasi Gagal:", error);
@@ -43,7 +48,7 @@ async function processMetaversePayment(amount, creatorWallet, assetName) {
   if (!currentUser) {
     const authenticated = await authenticateUser();
     if (!authenticated) {
-      alert("Silakan buka aplikasi melalui Pi Browser untuk melanjutkan transaksi.");
+      alert("Autentikasi Pi Network gagal.");
       return;
     }
   }
@@ -63,50 +68,57 @@ async function processMetaversePayment(amount, creatorWallet, assetName) {
     };
 
     const callbacks = {
-      onReadyForServerApproval: function(paymentId) {
-        console.log("Mengirim persetujuan ke server untuk ID:", paymentId);
-        return fetch('/api/approve', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ paymentId: paymentId })
-        })
-        .then(res => {
-          if (!res.ok) throw new Error("Server backend menolak persetujuan.");
-          return res.json();
-        })
-        .then(data => console.log("Approval sukses:", data))
-        .catch(err => console.error("Approval error:", err));
+      onReadyForServerApproval: async function(paymentId) {
+        console.log("Approval dipicu untuk paymentId:", paymentId);
+        try {
+          const response = await fetch('/api/approve', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paymentId: paymentId })
+          });
+
+          if (!response.ok) {
+            const errData = await response.json();
+            console.error("Approval Backend Error:", errData);
+          } else {
+            console.log("Approval Backend Berhasil");
+          }
+        } catch (err) {
+          console.error("Fetch Approval Error:", err);
+        }
       },
 
-      onReadyForServerCompletion: function(paymentId, txid) {
-        console.log("Menyelesaikan transaksi ID:", paymentId, "TXID:", txid);
-        return fetch('/api/complete', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ paymentId: paymentId, txid: txid })
-        })
-        .then(res => res.json())
-        .then(data => {
-          alert(`Transaksi Sukses! ${assetName} berhasil disewa.`);
-        })
-        .catch(err => console.error("Completion error:", err));
+      onReadyForServerCompletion: async function(paymentId, txid) {
+        console.log("Completion dipicu untuk paymentId:", paymentId, "txid:", txid);
+        try {
+          const response = await fetch('/api/complete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paymentId: paymentId, txid: txid })
+          });
+
+          if (response.ok) {
+            alert(`Transaksi Berhasil! ${assetName} sukses disewa.`);
+          }
+        } catch (err) {
+          console.error("Fetch Completion Error:", err);
+        }
       },
 
       onCancel: function(paymentId) {
-        console.log("Transaksi dibatalkan pengguna ID:", paymentId);
+        console.log("Pembayaran dibatalkan oleh pengguna ID:", paymentId);
       },
 
       onError: function(error, payment) {
-        console.error("Payment error:", error, payment);
-        alert("Transaksi gagal: " + (error.message || "Batas waktu persetujuan habis."));
+        console.error("Payment Error:", error, payment);
       }
     };
 
     await Pi.createPayment(paymentData, callbacks);
 
   } catch (err) {
-    console.error("CreatePayment error:", err);
-    alert("Gagal memicu pembayaran: " + err.message);
+    console.error("CreatePayment Error:", err);
+    alert("Gagal memproses transaksi: " + err.message);
   }
 }
 
