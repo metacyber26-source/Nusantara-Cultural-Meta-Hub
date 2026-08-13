@@ -1,7 +1,11 @@
 export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+  );
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -14,28 +18,34 @@ export default async function handler(req, res) {
   try {
     const { paymentId, txid } = req.body;
     if (!paymentId || !txid) {
-      return res.status(400).json({ error: 'paymentId and txid required' });
+      return res.status(400).json({ error: 'paymentId and txid are required' });
     }
 
     const API_KEY = process.env.PI_API_KEY;
     if (!API_KEY) {
-      return res.status(500).json({ error: 'API Key Not Configured' });
+      return res.status(500).json({ error: 'PI_API_KEY Missing' });
     }
 
-    const response = await fetch(`https://api.testnet.minepi.com/v2/payments/${paymentId}/complete`, {
+    const piRes = await fetch(`https://api.testnet.minepi.com/v2/payments/${paymentId}/complete`, {
       method: 'POST',
       headers: {
-        'Authorization': `Key ${API_KEY}`,
+        'Authorization': `Key ${API_KEY.trim()}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ txid })
     });
 
-    const data = await response.json();
-    return res.status(response.status).json(data);
+    const data = await piRes.json();
 
-  } catch (error) {
-    console.error("Internal Completion Error:", error);
-    return res.status(500).json({ error: error.message });
+    if (!piRes.ok) {
+      console.error("Pi Testnet Completion Error:", data);
+      return res.status(piRes.status).json(data);
+    }
+
+    return res.status(200).json(data);
+
+  } catch (err) {
+    console.error("Internal Server Error:", err);
+    return res.status(500).json({ error: err.message });
   }
 }
