@@ -1,3 +1,5 @@
+const BASE_URL = "https://nusantara-cultural-meta-hub.vercel.app";
+
 const SYSTEM_CONFIG = {
   REVENUE_SHARE: {
     CREATOR_PERCENT: 0.50,
@@ -6,8 +8,10 @@ const SYSTEM_CONFIG = {
   }
 };
 
-// Inisialisasi SDK Pi Sandbox
-Pi.init({ version: "2.0", sandbox: true });
+// Inisialisasi Pi SDK v2 Sandbox
+if (window.Pi) {
+  Pi.init({ version: "2.0", sandbox: true });
+}
 
 let currentUser = null;
 
@@ -15,21 +19,20 @@ async function authenticateUser() {
   try {
     const scopes = ['payments'];
 
-    // Menangani transaksi gantung agar tidak mengunci pembayaran baru
     async function onIncompletePaymentFound(payment) {
-      console.log("Incomplete payment ditemukan:", payment);
-      if (payment.identifier) {
+      console.log("Ditemukan pembayaran gantung:", payment);
+      if (payment && payment.identifier) {
         try {
-          await fetch('/api/complete', {
+          await fetch(`${BASE_URL}/api/complete`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               paymentId: payment.identifier,
-              txid: payment.transaction ? payment.transaction.txid : "CANCEL_OR_EXPIRED"
+              txid: (payment.transaction && payment.transaction.txid) ? payment.transaction.txid : "CANCELLED"
             })
           });
-        } catch (err) {
-          console.error("Gagal membersihkan incomplete payment:", err);
+        } catch (e) {
+          console.error("Gagal klirkan incomplete payment:", e);
         }
       }
     }
@@ -48,7 +51,7 @@ async function processMetaversePayment(amount, creatorWallet, assetName) {
   if (!currentUser) {
     const authenticated = await authenticateUser();
     if (!authenticated) {
-      alert("Autentikasi Pi Network gagal.");
+      alert("Silakan buka aplikasi dari dalam Pi Browser.");
       return;
     }
   }
@@ -59,7 +62,7 @@ async function processMetaversePayment(amount, creatorWallet, assetName) {
     const devShare = amount * SYSTEM_CONFIG.REVENUE_SHARE.DEV_PERCENT;
 
     const paymentData = {
-      amount: amount,
+      amount: Number(amount),
       memo: `Sewa: ${assetName}`,
       metadata: {
         asset: assetName,
@@ -68,57 +71,67 @@ async function processMetaversePayment(amount, creatorWallet, assetName) {
     };
 
     const callbacks = {
-      onReadyForServerApproval: async function(paymentId) {
-        console.log("Approval dipicu untuk paymentId:", paymentId);
-        try {
-          const response = await fetch('/api/approve', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ paymentId: paymentId })
-          });
-
-          if (!response.ok) {
-            const errData = await response.json();
-            console.error("Approval Backend Error:", errData);
-          } else {
-            console.log("Approval Backend Berhasil");
+      onReadyForServerApproval: function(paymentId) {
+        console.log("Approval dipicu untuk Payment ID:", paymentId);
+        
+        // Panggil backend Vercel menggunakan URL ABSOLUT LENGKAP
+        return fetch(`${BASE_URL}/api/approve`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({ paymentId: paymentId })
+        })
+        .then(res => {
+          if (!res.ok) {
+            throw new Error("Server menolak approval");
           }
-        } catch (err) {
-          console.error("Fetch Approval Error:", err);
-        }
+          return res.json();
+        })
+        .then(data => {
+          console.log("Approval server berhasil:", data);
+        })
+        .catch(err => {
+          console.error("Approval Error:", err);
+        });
       },
 
-      onReadyForServerCompletion: async function(paymentId, txid) {
-        console.log("Completion dipicu untuk paymentId:", paymentId, "txid:", txid);
-        try {
-          const response = await fetch('/api/complete', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ paymentId: paymentId, txid: txid })
-          });
-
-          if (response.ok) {
-            alert(`Transaksi Berhasil! ${assetName} sukses disewa.`);
-          }
-        } catch (err) {
-          console.error("Fetch Completion Error:", err);
-        }
+      onReadyForServerCompletion: function(paymentId, txid) {
+        console.log("Completion dipicu untuk Payment ID:", paymentId, "TXID:", txid);
+        
+        return fetch(`${BASE_URL}/api/complete`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({ paymentId: paymentId, txid: txid })
+        })
+        .then(res => res.json())
+        .then(data => {
+          alert(`Pembayaran Berhasil! ${assetName} sukses disewa.`);
+        })
+        .catch(err => {
+          console.error("Completion Error:", err);
+        });
       },
 
       onCancel: function(paymentId) {
-        console.log("Pembayaran dibatalkan oleh pengguna ID:", paymentId);
+        console.log("Pembayaran dibatalkan:", paymentId);
       },
 
       onError: function(error, payment) {
-        console.error("Payment Error:", error, payment);
+        console.error("Pi Payment Error:", error, payment);
+        alert("Gagal memproses pembayaran: " + (error.message || "Timeout"));
       }
     };
 
     await Pi.createPayment(paymentData, callbacks);
 
   } catch (err) {
-    console.error("CreatePayment Error:", err);
-    alert("Gagal memproses transaksi: " + err.message);
+    console.error("CreatePayment Exception:", err);
+    alert("Gagal memicu payment: " + err.message);
   }
 }
 
